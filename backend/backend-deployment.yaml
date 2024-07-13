@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: backend-deployment
-  namespace: example-namespace
 spec:
   replicas: 1
   selector:
@@ -14,7 +13,7 @@ spec:
         app: backend
     spec:
       containers:
-        - name: backend
+        - name: backend-container
           image: gcr.io/ethereal-smoke-422723-i0/my-backend:latest
           ports:
             - containerPort: 5000

@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: frontend-deployment
-  namespace: example-namespace
 spec:
   replicas: 1
   selector:
@@ -14,7 +13,7 @@ spec:
         app: frontend
     spec:
       containers:
-        - name: frontend
+        - name: frontend-container
           image: gcr.io/ethereal-smoke-422723-i0/my-frontend:latest
           ports:
             - containerPort: 3000
