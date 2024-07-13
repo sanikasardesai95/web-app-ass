@@ -5,15 +5,15 @@ steps:
 
   # Docker Build for Backend
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'us-central1-docker.pkg.dev/ethereal-smoke-422723-i0/cicd-repo/backend-app:$SHORT_SHA', './backend']
+    args: ['build', '-t', 'us-central1-docker.pkg.dev/ethereal-smoke-422723-i0/backend-app:$SHORT_SHA', './backend']
 
   # Docker Push for Frontend
   - name: 'gcr.io/cloud-builders/docker'
-    args: ["push", "us-central1-docker.pkg.dev/ethereal-smoke-422723-i0/cicd-repo/frontend-ui:$SHORT_SHA"]
+    args: ["push", "us-central1-docker.pkg.dev/ethereal-smoke-422723-i0/frontend-ui:$SHORT_SHA"]
 
   # Docker Push for Backend
   - name: 'gcr.io/cloud-builders/docker'
-    args: ["push", "us-central1-docker.pkg.dev/ethereal-smoke-422723-i0/cicd-repo/backend-app:$SHORT_SHA"]
+    args: ["push", "us-central1-docker.pkg.dev/ethereal-smoke-422723-i0/backend-app:$SHORT_SHA"]
 
   # Create a new release in Google Cloud Deploy for Frontend
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -25,7 +25,7 @@ steps:
       --delivery-pipeline=frontend-pipeline
       --region=us-central1
       --source=./frontend
-      --images=frontend-ui=us-central1-docker.pkg.dev/black-display-408016/cicd-repo/frontend-ui:$SHORT_SHA
+      --images=frontend-ui=us-central1-docker.pkg.dev/ethereal-smoke-422723-i0/frontend-ui:$SHORT_SHA
 
   # Create a new release in Google Cloud Deploy for Backend
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -37,7 +37,7 @@ steps:
       --delivery-pipeline=backend-pipeline
       --region=us-central1
       --source=./backend
-      --images=backend-app=us-central1-docker.pkg.dev/ethereal-smoke-422723-i0/cicd-repo/backend-app:$SHORT_SHA
+      --images=backend-app=us-central1-docker.pkg.dev/ethereal-smoke-422723-i0/backend-app:$SHORT_SHA
 
 options:
   logging: CLOUD_LOGGING_ONLY
