@@ -1,43 +1,76 @@
-steps:
-  # Docker Build for Frontend
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'my-frontend/ethereal-smoke-422723-i0/frontend-ui:$SHORT_SHA', './frontend']
-
-  # Docker Build for Backend
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'my-backend/ethereal-smoke-422723-i0/backend-app:$SHORT_SHA', './backend']
-
-  # Docker Push for Frontend
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ["push", "my-frontend/ethereal-smoke-422723-i0/frontend-ui:$SHORT_SHA"]
-
-  # Docker Push for Backend
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ["push", "my-backend/ethereal-smoke-422723-i0/backend-app:$SHORT_SHA"]
-
-  # Create a new release in Google Cloud Deploy for Frontend
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+steps: 
+  # Set the project
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args: ['config', 'set', 'project', 'ethereal-smoke-422723-i0']
+  # Run the setup script to create the cluster or get credentials if it already exists
+  - name: 'gcr.io/cloud-builders/gcloud'
     entrypoint: 'bash'
-    args:
-    - '-c'
-    - >
-      gcloud deploy releases create frontend-release-$BUILD_ID
-      --delivery-pipeline=frontend-pipeline
-      --region=us-central1
-      --source=./frontend
-      --images=frontend-ui=my-frontend/ethereal-smoke-422723-i0/frontend-ui:$SHORT_SHA
+    args: ['./setup_cluster.sh']
 
-  # Create a new release in Google Cloud Deploy for Backend
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'bash'
+  # Build and push backend Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/ethereal-smoke-422723-i0/my-backend', './backend']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/ethereal-smoke-422723-i0/my-backend']
+
+  # Build and push frontend Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/ethereal-smoke-422723-i0/my-frontend', './frontend']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/ethereal-smoke-422723-i0/my-frontend']
+
+# Apply Kubernetes configurations
+  - name: 'gcr.io/cloud-builders/kubectl'
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=us-central1'
+      - 'CLOUDSDK_COMPUTE_ZONE=us-central1-a'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=my-gke-cluster'
+    args: ['apply', '-f', 'backend/backend-deployment.yaml']
+  - name: 'gcr.io/cloud-builders/kubectl'
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=us-central1'
+      - 'CLOUDSDK_COMPUTE_ZONE=us-central1-a'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=my-gke-cluster'
+    args: ['apply', '-f', 'backend/backend-service.yaml']
+  - name: 'gcr.io/cloud-builders/kubectl'
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=us-central1'
+      - 'CLOUDSDK_COMPUTE_ZONE=us-central1-a'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=my-gke-cluster'
+    args: ['apply', '-f', 'frontend/frontend-deployment.yaml']
+  - name: 'gcr.io/cloud-builders/kubectl'
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=us-central1'
+      - 'CLOUDSDK_COMPUTE_ZONE=us-central1-a'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=my-gke-cluster'
+    args: ['apply', '-f', 'frontend/frontend-service.yaml']
+  # Update Kubernetes deployments
+  - name: 'gcr.io/cloud-builders/kubectl'
+    env:
+      - 'CLOUDSDK_CONTAINER_CLUSTER=my-gke-cluster'
+      - 'CLOUDSDK_COMPUTE_ZONE=us-central1-a'
     args:
-    - '-c'
-    - >
-      gcloud deploy releases create backend-release-$BUILD_ID
-      --delivery-pipeline=backend-pipeline
-      --region=us-central1
-      --source=./backend
-      --images=backend-app=my-backend/ethereal-smoke-422723-i0/backend-app:$SHORT_SHA
+      - 'set'
+      - 'image'
+      - 'deployment/backend-deployment'
+      - 'backend-container=gcr.io/ethereal-smoke-422723-i0/my-backend:latest'
+      - '-n'
+      - 'default'
+  - name: 'gcr.io/cloud-builders/kubectl'
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=us-central1-a'
+    args:
+      - 'set'
+      - 'image'
+      - 'deployment/frontend-deployment'
+      - 'frontend-container=gcr.io/ethereal-smoke-422723-i0/my-frontend:latest'
+      - '-n'
+      - 'default'
+
+images:
+  - 'gcr.io/ethereal-smoke-422723-i0/my-backend'
+  - 'gcr.io/ethereal-smoke-422723-i0/my-frontend'
 
 options:
   logging: CLOUD_LOGGING_ONLY
+
